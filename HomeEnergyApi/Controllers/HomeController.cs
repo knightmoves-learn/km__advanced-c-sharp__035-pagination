@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using HomeEnergyApi.Models;
-using HomeEnergyApi.Pagination;
+using Microsoft.EntityFrameworkCore;
 
 namespace HomeEnergyApi.Controllers
 {
@@ -8,42 +8,26 @@ namespace HomeEnergyApi.Controllers
     [Route("[controller]")]
     public class HomesController : ControllerBase
     {
-        private IPaginatedReadRepository<int, Home> repository;
+        private IReadRepository<int, Home> repository;
+        private IOwnerLastNameQueryable<Home> homeByOwnerLastNameRepository;
 
-        public HomesController(IPaginatedReadRepository<int, Home> repository)
+        public HomesController(IReadRepository<int, Home> repository, IOwnerLastNameQueryable<Home> homeByOwnerLastNameRepository)
         {
             this.repository = repository;
+            this.homeByOwnerLastNameRepository = homeByOwnerLastNameRepository;
         }
 
         [HttpGet]
-        public IActionResult Get([FromQuery] string? ownerLastName, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public IActionResult Get([FromQuery] string? ownerLastName)
         {
-            PaginatedResult<Home> paginatedResult;
-
             if (ownerLastName != null)
             {
-                paginatedResult = repository.FindPaginatedByOwnerLastName(ownerLastName, pageNumber, pageSize);
+                return Ok(homeByOwnerLastNameRepository.FindByOwnerLastName((string)ownerLastName));
             }
             else
             {
-                paginatedResult = repository.FindPaginated(pageNumber, pageSize);
+                return Ok(repository.FindAll());
             }
-
-            var totalPages = (int)Math.Ceiling((double)paginatedResult.TotalCount / pageSize);
-
-            var nextPageUrl = pageNumber < totalPages
-                    ? Url.Action(nameof(Get), new { pageNumber = pageNumber + 1, pageSize })
-                    : null;
-
-            return Ok(new
-            {
-                Homes = paginatedResult.Items,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalItems = paginatedResult.TotalCount,
-                TotalPages = paginatedResult.TotalPages,
-                NextPage = nextPageUrl
-            });
         }
 
         [HttpGet("{id}")]

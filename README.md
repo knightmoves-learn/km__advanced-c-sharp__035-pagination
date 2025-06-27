@@ -2,7 +2,8 @@
 
 ## Lecture
 
-[![# Pagination)](https://img.youtube.com/vi/1E4uIz_DkU4/0.jpg)](https://www.youtube.com/watch?v=1E4uIz_DkU4)
+[![# Pagination (Part 1)](https://img.youtube.com/vi/Pwzy8bCFO4w/0.jpg)](https://www.youtube.com/watch?v=Pwzy8bCFO4w)
+[![# Pagination (Part 1)](https://img.youtube.com/vi/L-_XFNhJiYo/0.jpg)](https://www.youtube.com/watch?v=L-_XFNhJiYo)
 
 ## Instructions
 
