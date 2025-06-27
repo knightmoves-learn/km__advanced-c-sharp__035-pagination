@@ -19,6 +19,7 @@ builder.Services.AddScoped<HomeRepository>();
 builder.Services.AddScoped<IReadRepository<int, Home>>(provider => provider.GetRequiredService<HomeRepository>());
 builder.Services.AddScoped<IWriteRepository<int, Home>>(provider => provider.GetRequiredService<HomeRepository>());
 builder.Services.AddScoped<IOwnerLastNameQueryable<Home>>(provider => provider.GetRequiredService<HomeRepository>());
+builder.Services.AddScoped<IPaginatedReadRepository<int, Home>>(provider => provider.GetRequiredService<HomeRepository>());
 
 builder.Services.AddScoped<UtilityProviderRepository>();
 builder.Services.AddScoped<IReadRepository<int, UtilityProvider>>(provider => provider.GetRequiredService<UtilityProviderRepository>());

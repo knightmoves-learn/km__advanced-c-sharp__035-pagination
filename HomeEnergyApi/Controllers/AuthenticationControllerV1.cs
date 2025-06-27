@@ -77,7 +77,6 @@ namespace HomeEnergyApi.Controllers
             }
 
             string streetAddress = valueEncryptor.Decrypt(user.EncryptedAddress);
-            Console.WriteLine("Decrypted Street Address: " + streetAddress);
 
             string token = GenerateJwtToken(user);
             return Ok(new { token });

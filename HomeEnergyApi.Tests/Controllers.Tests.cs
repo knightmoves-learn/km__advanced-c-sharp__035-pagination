@@ -4,7 +4,9 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using HomeEnergyApi.Dtos;
 using HomeEnergyApi.Models;
+using HomeEnergyApi.Pagination;
 using HomeEnergyApi.Tests.Extensions;
+using System.Runtime.InteropServices;
 
 
 
@@ -250,6 +252,23 @@ public class ControllersTests
 
     [Theory, TestPriority(12)]
     [InlineData("/Homes")]
+    public async Task EnsureGetAllHomesIsPaginated(string url)
+    {
+        var client = _factory.CreateClient();
+
+        // Get the first page of homes
+        var response = await client.GetAsync($"{url}?pageNumber=1&pageSize=10");
+        //Assert.True(response.IsSuccessStatusCode, $"Failed to get first page of homes: {response.StatusCode}");
+
+        var content = await response.Content.ReadAsStringAsync();
+        //dynamic? paginatedResult = JsonSerializer.Deserialize<dynamic>(content);
+        bool isPaginated = content.Contains("\"pageNumber\":1") && content.Contains("\"pageSize\":10") && content.Contains("\"totalItems\":");
+
+        Assert.True(isPaginated, $"Expected a paginated response, but the response did not contain pagination information.\nReceived content: \n{content}");
+    }
+
+    [Theory, TestPriority(13)]
+    [InlineData("/Homes")]
     public async Task RateLimitingServiceReturnsTooManyRequestsAfter20RequestsInUnderASecond(string url)
     {
         var client = _factory.CreateClient();
@@ -367,7 +386,8 @@ public class ControllersTests
         var getAllResponse = await client.GetAsync("/Homes");
         string getAllResponseStr = await getAllResponse.Content.ReadAsStringAsync();
         dynamic? getAllResponseObj = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(getAllResponseStr);
-        return getAllResponseObj?[getAllResponseObj.Count - 1].Id ?? "";
+        //return getAllResponseObj?[getAllResponseObj.Count - 1].Id ?? "";
+        return getAllResponseObj?.Items?[getAllResponseObj.TotalItems - 1].Id ?? "";
     }
 
     public UtilityProviderDto BuildTestUtilProvDto(string name, List<string> provUtils)

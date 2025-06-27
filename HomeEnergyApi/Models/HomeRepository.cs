@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using HomeEnergyApi.Pagination;
 
 namespace HomeEnergyApi.Models
 {
-    public class HomeRepository : IReadRepository<int, Home>, IWriteRepository<int, Home>, IOwnerLastNameQueryable<Home>
+    public class HomeRepository : IReadRepository<int, Home>, IWriteRepository<int, Home>, IOwnerLastNameQueryable<Home>, IPaginatedReadRepository<int, Home>
     {
         private HomeDbContext context;
 
@@ -66,6 +67,57 @@ namespace HomeEnergyApi.Models
                 .Include(h => h.HomeUsageData)
                 .Include(h => h.HomeUtilityProviders)
                 .ToList();
+        }
+
+        public PaginatedResult<Home> FindPaginated(int pageNumber, int pageSize)
+        {
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            var totalCount = context.Homes.Count();
+            var items = context.Homes
+                .Include(h => h.HomeUsageData)
+                .Include(h => h.HomeUtilityProviders)
+                .OrderBy(h => h.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PaginatedResult<Home>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                HasNextPage = pageNumber * pageSize < totalCount
+            };
+        }
+
+        public PaginatedResult<Home> FindPaginatedByOwnerLastName(string ownerLastName, int pageNumber, int pageSize)
+        {
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 10 : pageSize;
+
+            var totalCount = context.Homes.Count();
+            var items = context.Homes
+                .Where(h => h.OwnerLastName == ownerLastName)
+                .Include(h => h.HomeUsageData)
+                .Include(h => h.HomeUtilityProviders)
+                .OrderBy(h => h.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new PaginatedResult<Home>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                HasNextPage = pageNumber * pageSize < totalCount
+            };
         }
     }
 }

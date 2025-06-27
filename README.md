@@ -1,49 +1,72 @@
-# 034 Rate Limiting
+# 035 Pagination
 
 ## Lecture
 
-[![# Rate Limiting)](https://img.youtube.com/vi/1E4uIz_DkU4/0.jpg)](https://www.youtube.com/watch?v=1E4uIz_DkU4)
+[![# Pagination)](https://img.youtube.com/vi/1E4uIz_DkU4/0.jpg)](https://www.youtube.com/watch?v=1E4uIz_DkU4)
 
 ## Instructions
 
-In `HomeEnergyApi/Middleware/RateLimitingService.cs`
-- Create a new public class named `RateLimitingService`
-    - Add a private readonly property of type `Dictionary<string, List<DateTime>>` and initialize it to a new empty dictionary
-    - Add a private readonly property of type `int` and initialize it to the value `20
-    - Add a private readonly property of type `TimeSpan` and initialize it with a value representing 1 second
-    - Create a public method named `IsRequestAllowed` that returns `bool` and takes one parameter of type `string`
-        - Create an `if` statement that checks if the `Dictionary<string, List<DateTime>>` property does NOT contain a key using `ContainsKey()` with the `string` parameter representing the client key
-            - Inside the `if` block, assign a new `List<DateTime>` to the `Dictionary<string, List<DateTime>>` property using the `string` parameter as the key
-        - Call `RemoveAll()` on the `List<DateTime>` accessed from the `Dictionary<string, List<DateTime>>` property using the `string` parameter as the key, passing a lambda expression that checks if each request is less than `DateTime.UtcNow` minus the `TimeSpan` property
-        - Create an `if` statement that checks if the `Count` of the `List<DateTime>` accessed from the `Dictionary<string, List<DateTime>>` property using the `string` parameter as the key is greater than or equal to the `int` property representing the maximum requests
-            - Inside the `if` block, return `false`
-        - Call `Add()` on the `List<DateTime>` accessed from the `Dictionary<string, List<DateTime>>` property using the `string` parameter as the key, passing `DateTime.UtcNow`
-        - Return `true` from the method
-        - NOTE: You may want more or less strict rate limiting parameters on a real application, the values of 20 requets in one second were chosen to make autograding this assignment possible
+# In `HomeEnergyApi/Pagination/PaginatedResult.cs`
 
-In `HomeEnergyApi/Services/RateLimitingMiddleware.cs`
-- Create a new public class named `RateLimitingMiddleware`
-    - Add a private readonly property of type `RequestDelegate`
-    - Add a private readonly property of type `RateLimitingService`
-    - Add a private readonly property of type `ILogger<RateLimitingMiddleware>`
-    - Create a public constructor that accepts three parameters with the following types
-        - `RequestDelegate`
-        - `RateLimitingService`
-        - `ILogger<RateLimitingMiddleware>`
-        - In the constructor body assign each parameter to the appropriate property.
-    - Create a public async method named `InvokeAsync*()` that returns `Task` and takes one parameter of type `HttpContext`
-        - At the beginning of the method, call `LogDebug()` on the `ILogger<RateLimitingMiddleware>` property with the message `"RateLimitingMiddleware Started"`
-        - Create a variable and assign it the value of calling `ToString()` on the `RemoteIpAddress` property from the `Connection` property of the `HttpContext`
-        - Create an `if` statement that checks if the request is NOT allowed by calling `IsRequestAllowed()` on the `RateLimitingService` property with the previous `ToString()` result as the argument
-            - Inside the `if` block, set the `StatusCode` property of the `Response` property on the `HttpContext` to `StatusCodes.Status429TooManyRequests`
-            - Call `await WriteAsync()` on the `Response` property of the `HttpContext` with the message `"Slow down! Too many requests."`
-            - Add a `return` statement to exit the method
-        - After the `if` block, call `await` on the `RequestDelegate` property, passing the `HttpContext` to pass control to the next middleware in the pipeline
+NOTE: At the start of this lesson `HomeEnergyApi/Pagination/PaginatedResult.cs` and `HomeEnergyApi/Models/IPaginatedReadRepository.cs` have been created for you.
 
-In `HomeEnergyApi/Program.cs
-- Add the line `builder.Services.AddSingleton<RateLimitingService>();`
-- Add the line `app.UseMiddleware<RateLimitingMiddleware>();`
-    - This should be added BEFORE the `ApiKeyMiddleware` and be called regardless of the requested endpoint
+In `HomeEnergyApi/Models/HomeRepository.cs`
+- Implement the class `IPaginatedReadRepository<int, Home>` on `HomeRepository`
+- Create a public method named `FindPaginated` that returns `PaginatedResult<Home>` and takes two parameters: a page number of type `int` and a page size of type `int`
+    - Set the page number to `1` if it is less than `1`, otherwise keep its current value
+    - Set the page size to `10` if it is less than `1`, otherwise keep its current value
+    - Create a variable and assign it the result of calling `Count()` on the `Homes` property of the context
+    - Create a variable and assign it the result of a LINQ query on the `Homes` property of the context:
+        - Call `Include()` with a lambda expression accessing the `HomeUsageData` property
+        - Call `Include()` with a lambda expression accessing the `HomeUtilityProviders` property
+        - Call `OrderBy()` with a lambda expression accessing the `Id` property
+        - Call `Skip()` with the calculation `(page number - 1) * page size`
+        - Call `Take()` with the page size
+        - Call `ToList()`
+    - Return a new `PaginatedResult<Home>` with properties set to:
+        - The `Items` property set to the variable containing the LINQ query results
+        - The `TotalCount` property set to the variable containing the count of `Homes`
+        - The `PageNumber` property set to the page number
+        - The `PageSize` property set to the page size
+        - The `TotalPages` property set to the result of casting `Math.Ceiling()` of the division of the total count variable cast to `double` by the page size to `int`
+        - The `HasNextPage` property set to the boolean result of checking if the multiplication of the page number and page size is less than the total count variable
+- Create a public method named `FindPaginatedByDate` that returns `PaginatedResult<Home>` and takes three parameters: one of type `string`, a page number of type `int`, and a page size of type `int`
+    - Set the page number to `1` if it is less than `1`, otherwise keep its current value
+    - Set the page size to `10` if it is less than `1`, otherwise keep its current value
+    - Create a variable and assign it the result of calling `Count()` on the `Homes` property of the context
+    - Create a variable and assign it the result of a LINQ query on the `Homes` property of the context:
+        - Call `Where()` with a lambda expression that checks if the `OwnerLastName` property equals the `string` parameter
+        - Call `Include()` with a lambda expression accessing the `HomeUsageData` property
+        - Call `Include()` with a lambda expression accessing the `HomeUtilityProviders` property
+        - Call `OrderBy()` with a lambda expression accessing the `Id` property
+        - Call `Skip()` with the calculation `(page number - 1) * page size`
+        - Call `Take()` with the page size
+        - Call `ToList()`
+    - Return a new `PaginatedResult<Home>` with properties set to:
+        - The `Items` property set to the variable containing the query results
+        - The `TotalCount` property set to the variable containing the count
+        - The `PageNumber` property set to the page number
+        - The `PageSize` property set to the page size
+        - The `TotalPages` property set to the result of casting `Math.Ceiling()` of the division of the total count variable cast to `double` by the page size to `int`
+        - The `HasNextPage` property set to the boolean result of checking if the multiplication of the page number and page size is less than the total count variable
+
+In `HomeEnergyApi/Controllers/HomeController.cs`
+- Replace the properties for the `IReadRepository` and `IOwnerLastNameQueryable` with the `IPaginatedReadRepository` and update the constructor accordingly
+- Modify the `Get()` method
+    - Add the following two `[FromQuery]` parameters
+        - `pageNumber` of type `int` defaulting to `1`
+        - `pageSize` of type `int` defaulting to `10`
+    - Modify the body of the method to instead return a `PaginatedResult<Home>` from the `IPaginatedReadRepository` depending on whether an `OwnerLastName` was provided.
+    - Add a new return statement, outside of the if/else block, that returns the following properties/values
+        - `Homes` set to the `Items` from the `PaginatedResult`
+        - `PageNumber` set to the passed `int` page number
+        - `PageSize` set to the passed `int` page size
+        - `TotalItems` set to the `TotalCount` of the `PaginatedResult`
+        - `TotalPages` set to the `TotalPages` of the `PaginatedResult`
+        = `Next Page` set to the result of the expression `Url.Action(nameof(Get), new { pageNumber = pageNumber + 1, pageSize })` if the page number is less than the total pages, or `null` otherwise
+
+In `HomeEnergyApi/Program.cs`
+- Similar to how you added a scoped service for your other repositories, add a scoped service to the `builder` for `IPaginatedReadRepository`
 
 ## Additional Information
 

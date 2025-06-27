@@ -51,11 +51,9 @@ namespace HomeEnergyApi.Controllers
             var user = mapper.Map<User>(userDto);
 
             string hashPassword = passwordHasher.HashPassword(userDto.Password);
-            Console.WriteLine("Hashed Password: " + hashPassword);
             user.HashedPassword = hashPassword;
 
             string encryptedAddress = valueEncryptor.Encrypt(BuildFullAddress(userDto));
-            Console.WriteLine("Encrypted Street Address: " + encryptedAddress);
             user.EncryptedAddress = encryptedAddress;
 
 
@@ -73,7 +71,6 @@ namespace HomeEnergyApi.Controllers
             }
 
             string address = valueEncryptor.Decrypt(user.EncryptedAddress);
-            Console.WriteLine("Decrypted Address: " + address);
 
             string token = GenerateJwtToken(user);
             return Ok(new { token });
